@@ -7,7 +7,7 @@
     <title>予約フォーム</title>
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <style>
-        /* 既存のCSSはそのまま維持 */
+        /* CSSは変更なし */
         .side-nav { position: fixed; right: -5px; top: 80%; transform: translateY(-50%) translateX(16px); background: #3e3f41; display: flex; flex-direction: column; align-items: center; padding: 4px; border-radius: 10px 0 0 10px; z-index: 1000; width: 35px; }
         .side-nav a:active { transform: scale(1.0); }
         .side-nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-decoration: none; font-size: 10px; margin: 5px 0; padding: 5px; transition: background 0.3s, transform 0.2s; border-radius: 5px; width: 30px; height: 30px; text-align: center; }
@@ -24,8 +24,7 @@
         input[type="text"], input[type="tel"], textarea { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #555555; border-radius: 3px; box-sizing: border-box; font-size: 16px; transition: all 0.3s; position: relative; top: -5px; }
         .visit-buttons, .symptoms, .menu-sections, .irradiations { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
         .visit-buttons button, .symptoms button, .menu-sections button, .irradiations button { flex: 1; padding: 10px; border: 1px solid #2e2e2e; border-radius: 4px; background-color: #ffffff; cursor: pointer; box-sizing: border-box; text-align: center; white-space: nowrap; }
-        .visit-buttons button.active, .symptoms button.active, .menu-sections button.active, .irradiations button.active { background-color: #ffffff; color: #141414; outline: 1px solid #2b2b2b; outline-offset: 2px; /* 外側に色を追加 */
-    box-shadow: 0 0 0 3px #13ca5e}
+        .visit-buttons button.active, .symptoms button.active, .menu-sections button.active, .irradiations button.active { background-color: #ffffff; color: #141414; outline: 1px solid #2b2b2b; outline-offset: 2px; box-shadow: 0 0 0 3px #13ca5e}
         .date-inputs input[type="datetime-local"] { width: calc(100% - 22px); padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .submit-button { width: 100%; padding: 15px; border: none; border-radius: 4px; background-color: #272727; color: #fff; font-size: 18px; cursor: pointer; margin-top: 12px; }
         .submit-button:hover { background-color: #ffffff; color: #000; border: 1px solid #000; }
@@ -75,9 +74,7 @@
         #selected-menus-display .menu-item span { flex: 1; margin-right: 10px; word-break: break-word; white-space: normal; }
         #selected-menus-display .remove-button { background-color: #ffebee; border: 1px solid #e57373; color: #c62828; font-size: 18px; font-weight: bold; cursor: pointer; padding: 6px 10px; line-height: 1; border-radius: 8px; transition: all 0.2s ease; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; }
         #selected-menus-display .remove-button:hover { background-color: #ffcdd2; color: #b71c1c; border-color: #ef5350; }
-        @keyframes fadeIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
-
-        /* 眉メニュー専用のスタイル */
+        
         .eyebrow-container-hidden { display: none; }
         .eyebrow-parts-container { display: none; margin-top: 10px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ccc; border-radius: 4px; }
         .eyebrow-parts-container.active { display: block; }
@@ -248,7 +245,8 @@
     <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
     <script>
         let visitCount = '';
-        let selectedMenu = '';
+        // selectedMenuは現在表示中のタブ名として使用（submit時のカテゴリーは複数になる可能性があるため、submit時に生成する）
+        let selectedMenu = ''; 
         let selectedSymptom = [];  // 配列として定義
         let selectedFullDate = '';
         let currentDate = new Date();
@@ -262,12 +260,14 @@
         let eyebrowConfig = {
             limit: 0,
             selectedParts: [],
-            planName: ''
+            planName: '',
+            price: 0,
+            time: 0
         };
 
         document.addEventListener('DOMContentLoaded', function () {
             liff.init({
-                liffId: '2008848919-PuJBqw5J'
+                liffId: '2008849737-ULWr8KXJ'
             }).then(() => {
                 console.log('LIFF初期化成功');
             }).catch((err) => {
@@ -278,45 +278,20 @@
             document.querySelector('.calendar-container').style.display = 'none';
         });
 
-// 訪問回数ごとの時間設定
-        // ※今回はメニュー自体に所要時間を含めているため、回数による加算は0とします
-        let visitTimes = {
-            '1回目': 0,
-            '2回目以降': 0
-        };
+        // 訪問回数ごとの時間設定
+        let visitTimes = { '1回目': 0, '2回目以降': 0 };
 
         let selectedVisitTime = 0;
         let selectedirradiationsTime = 0;
-
-        // オプションごとの所要時間設定
         let irradiationsTimes = {
-            '眉カット〈30分〉': 30,
-            '襟足〈30分〉': 30,
-            '背中(キャミソールライン)〈30分〉': 30,
-            '背中(腰まで)〈30分〉': 30,
-            'デコルテ〈30分〉': 30,
-            '腕〈30分〉': 30,
-            '保湿パック〈30分〉': 30,
-            'ベーシックマッサージ(パック付き)〈30分〉': 30,
-            'リラックスマッサージの(パック付き)〈30分〉': 30,
-            '美白パック〈30分〉': 30
+            '眉カット〈30分〉': 30, '襟足〈30分〉': 30, '背中(キャミソールライン)〈30分〉': 30,
+            '背中(腰まで)〈30分〉': 30, 'デコルテ〈30分〉': 30, '腕〈30分〉': 30,
+            '保湿パック〈30分〉': 30, 'ベーシックマッサージ(パック付き)〈30分〉': 30,
+            'リラックスマッサージの(パック付き)〈30分〉': 30, '美白パック〈30分〉': 30
         };
-        
-        // メニューごとの所要時間（カレンダー空き枠確保用）
         let menuTimes = {
-            // フェイシャル
-            '毛穴フェイシャルエステ': 90,
-
-            // ヒト幹細胞
-            'ヒト幹細胞培養上製液': 60,
-
-            // オイルリンパ
-            'オイルリンパ60分': 90,
-            'オイルリンパ90分': 120,
-            'オイルリンパ120分': 150
-
-            // 眉スタイリングについては、新規・再来で時間が異なる場合があるため、
-            // ボタンクリック時（selectEyebrowPlan関数）に直接時間をセットしています。
+            '毛穴フェイシャルエステ': 90, 'ヒト幹細胞培養上製液': 60,
+            'オイルリンパ60分': 90, 'オイルリンパ90分': 120, 'オイルリンパ120分': 150
         };
 
         let selectedMenuTime = 0;
@@ -339,10 +314,7 @@
                 const targetId = this.getAttribute('href').substring(1);
                 const targetElement = document.getElementById(targetId);
                 if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 20,
-                        behavior: 'smooth'
-                    });
+                    window.scrollTo({ top: targetElement.offsetTop - 20, behavior: 'smooth' });
                 }
             });
         });
@@ -350,20 +322,33 @@
         function updateDisplayInfo() {
             const name = document.getElementById('name').value;
             const visitCountText = visitCount ? `<span style="color:#0c0c0c;"><strong>来店回数</strong></span>：${visitCount}` : '・来店回数が未選択です';
-            const selectedMenuText = selectedMenu ? `<span style="color#0c0c0c;"><strong>カテゴリー</strong></span>：${selectedMenu}` : '・カテゴリーが未選択です';
-
-            // メニュー表示ロジック（眉スタイリングとその他で分岐）
-            let selectedSymptomText = '・メニューが未選択です';
             
-            if (selectedMenu === '眉スタイリング') {
-                if (eyebrowConfig.planName) {
-                    const partsText = eyebrowConfig.selectedParts.length > 0 ? `(${eyebrowConfig.selectedParts.join('・')})` : '(部位未選択)';
-                    selectedSymptomText = `<span style="color:#0c0c0c;"><strong>メニュー</strong></span><br>・${eyebrowConfig.planName}<br>　${partsText}`;
-                }
+            // 選択中の全カテゴリーを表示
+            const categories = new Set();
+            if (eyebrowConfig.planName) categories.add('眉スタイリング');
+            selectedSymptom.forEach(item => categories.add(item.category));
+            const categoryText = categories.size > 0 ? Array.from(categories).join('・') : '・未選択';
+            const selectedMenuText = `<span style="color#0c0c0c;"><strong>カテゴリー</strong></span>：${categoryText}`;
+
+            let selectedSymptomText = '';
+            let itemsHtml = [];
+            
+            // 眉メニュー
+            if (eyebrowConfig.planName) {
+                const partsText = eyebrowConfig.selectedParts.length > 0 ? `(${eyebrowConfig.selectedParts.join('・')})` : '(部位未選択)';
+                itemsHtml.push(`《眉スタイリング》${eyebrowConfig.planName} ${partsText}`);
+            }
+            // 他メニュー
+            if (selectedSymptom.length > 0) {
+                selectedSymptom.forEach(item => {
+                    itemsHtml.push(`《${item.category}》${item.name}`);
+                });
+            }
+
+            if (itemsHtml.length > 0) {
+                selectedSymptomText = `<span style="color:#0c0c0c;"><strong>メニュー</strong></span><br>・${itemsHtml.join('<br>・')}`;
             } else {
-                if (selectedSymptom.length > 0) {
-                    selectedSymptomText = `<span style="color:#0c0c0c;"><strong>メニュー</strong></span><br>・${selectedSymptom.map(item => `《${item.category}》${item.name}`).join('<br>・')}`;
-                }
+                selectedSymptomText = '・メニューが未選択です';
             }
 
             const irradiationsText = irradiationsCount
@@ -400,10 +385,6 @@
                 </div>
                 <hr>
                 <div class="info-row">
-                    <p>${totalTimeText}</p>
-                </div>
-                <hr>
-                <div class="info-row">
                     <p>${selectedDateText}</p>
                     <button class="edit-button" onclick="scrollToElement('calendar1')">修正</button>
                 </div>
@@ -424,16 +405,12 @@
 
         document.getElementById('name').addEventListener('input', updateDisplayInfo);
         
-        // カレンダー表示制御
         function checkCalendarVisibility() {
             const calendarContainer = document.querySelector('.calendar-container');
             let hasSelection = false;
             
-            if (selectedMenu === '眉スタイリング') {
-                if (eyebrowConfig.planName) hasSelection = true;
-            } else {
-                if (document.querySelectorAll('.symptoms button.active').length > 0) hasSelection = true;
-            }
+            if (eyebrowConfig.planName) hasSelection = true;
+            if (selectedSymptom.length > 0) hasSelection = true;
 
             if (hasSelection) {
                 calendarContainer.style.display = 'block';
@@ -449,36 +426,106 @@
             });
         });
 
-        // ----------------------------------------------------
-        // 眉スタイリング専用ロジック
-        // ----------------------------------------------------
-        function selectEyebrowPlan(button, limit, time, price, partsArray, type) {
-            // 日時リセット
-            selectedFullDate = '';
+        // 統合された再計算関数（全ての選択状態を見て合計を出す）
+        function recalculateAllSelections() {
+            selectedFullDate = ''; // 構成が変わったら日時はリセット
             
-            // ボタンのスタイル制御
+            let tempPrice = 0;
+            let tempTime = 0;
+            let tempSymptoms = [];
+
+            // 1. 眉メニューの計算
+            if (eyebrowConfig.planName) {
+                tempPrice += eyebrowConfig.price;
+                tempTime += eyebrowConfig.time;
+            }
+
+            // 2. 通常メニュー（全ボタンを走査）
+            // 眉以外の .symptoms 内の active ボタンを探す
+            // ※眉のボタンは ID="eyebrow" 内にあるので、それを除外するか、classで分ける
+            // ここでは document全体から active を探し、eyebrow内のボタンは除外するロジックにする
+            const allActiveButtons = document.querySelectorAll('.symptoms button.active');
+            
+            allActiveButtons.forEach(btn => {
+                // 眉エリア内のボタンは除外（eyebrowConfigで管理済みのため）
+                if (btn.closest('#eyebrow')) return;
+
+                const name = btn.innerText.split('\n')[0];
+                const category = btn.getAttribute('data-category');
+                const price = parseInt(btn.getAttribute('data-price')) || 0;
+                const time = parseInt(btn.getAttribute('data-time')) || 0;
+
+                tempSymptoms.push({ category: category, name: name });
+                tempPrice += price;
+                tempTime += time;
+            });
+
+            // グローバル変数に適用
+            selectedSymptom = tempSymptoms;
+            menuPrice = tempPrice;
+            selectedMenuTime = tempTime;
+
+            // 表示更新
+            updateAllSelectedMenusDisplay();
+            checkCalendarVisibility();
+            fetchAvailability(currentDate);
+            updateDisplayInfo();
+        }
+
+        // 表示エリア（チップ）の更新
+        function updateAllSelectedMenusDisplay() {
+            const selectedMenusDisplay = document.getElementById("selected-menus-display");
+            let html = '';
+
+            // 眉チップ
+            if (eyebrowConfig.planName) {
+                html += `
+                    <div class="menu-item">
+                        <span>《眉スタイリング》<br>${eyebrowConfig.planName}<br>部位：${eyebrowConfig.selectedParts.join(', ') || '未選択'}</span>
+                        <button class="remove-button" onclick="resetEyebrowSelection()">✕</button>
+                    </div>`;
+            }
+
+            // 通常メニューチップ
+            selectedSymptom.forEach(item => {
+                html += `
+                    <div class="menu-item">
+                        <span>《${item.category}》<br>${item.name}</span>
+                        <button class="remove-button" onclick="removeSymptomByName('${item.name}')">✕</button>
+                    </div>`;
+            });
+
+            if (html) {
+                selectedMenusDisplay.innerHTML = `<div class="menu-items-wrapper">${html}</div>`;
+                selectedMenusDisplay.style.display = 'block';
+            } else {
+                selectedMenusDisplay.innerHTML = '';
+                selectedMenusDisplay.style.display = 'none';
+            }
+        }
+
+        // 眉スタイリング専用ロジック
+        function selectEyebrowPlan(button, limit, time, price, partsArray, type) {
+            // 他の眉プランボタンを非アクティブ化
             const allButtons = document.querySelectorAll('#eyebrow .symptoms button');
             allButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
-            // 設定の保存
+            // 設定
             eyebrowConfig.limit = limit;
-            eyebrowConfig.planName = button.innerText.split('\n')[0]; // 改行の前だけ取得
+            eyebrowConfig.planName = button.innerText.split('\n')[0];
+            eyebrowConfig.price = price;
+            eyebrowConfig.time = time;
             eyebrowConfig.selectedParts = [];
             
-            // 金額・時間設定
-            menuPrice = price;
-            selectedMenuTime = time;
-            
-            // パーツボタンの生成
+            // パーツエリア表示
             const partsArea = document.getElementById('eyebrow-parts-area');
             const instruction = document.getElementById('eyebrow-parts-instruction');
             const partsButtonsDiv = document.getElementById('eyebrow-parts-buttons');
             
             partsArea.classList.add('active');
             instruction.innerText = `下記より${limit}つ選択してください`;
-            
-            partsButtonsDiv.innerHTML = ''; // クリア
+            partsButtonsDiv.innerHTML = '';
             partsArray.forEach(part => {
                 const partBtn = document.createElement('button');
                 partBtn.type = 'button';
@@ -487,127 +534,53 @@
                 partsButtonsDiv.appendChild(partBtn);
             });
 
-            // 他のカテゴリーの選択をクリア
-            selectedSymptom = [];
-            
-            // 選択メニュー表示エリアの更新
-            updateSelectedMenusDisplayEyebrow();
-            
-            // カレンダー取得＆表示
-            checkCalendarVisibility();
-            fetchAvailability(currentDate);
-            updateDisplayInfo();
+            // 再計算
+            recalculateAllSelections();
         }
 
         function toggleEyebrowPart(button) {
             const partName = button.innerText;
-            
             if (button.classList.contains('active')) {
-                // 解除
                 button.classList.remove('active');
                 eyebrowConfig.selectedParts = eyebrowConfig.selectedParts.filter(p => p !== partName);
             } else {
-                // 選択（制限チェック）
-                if (eyebrowConfig.selectedParts.length >= eyebrowConfig.limit) {
-                    // 他を外してこれを入れる挙動にするならここを変更。現在は制限数以上押せない仕様。
-                    // alert(`このプランは${eyebrowConfig.limit}つまで選択可能です。`);
-                    // return;
-                    
-                    // UX向上のため、一番古いものを消して新しいものを選択する場合（任意）
-                    // 今回は「押せない」ではなく「入れ替え」はせず、アラートも出さず何もしないか、あるいは
-                    return; // 制限以上は押せない
-                }
+                if (eyebrowConfig.selectedParts.length >= eyebrowConfig.limit) return;
                 button.classList.add('active');
                 eyebrowConfig.selectedParts.push(partName);
             }
-            updateSelectedMenusDisplayEyebrow();
+            // チップの部位表示更新のため再描画
+            updateAllSelectedMenusDisplay();
             updateDisplayInfo();
-        }
-
-        function updateSelectedMenusDisplayEyebrow() {
-            const display = document.getElementById("selected-menus-display");
-            display.innerHTML = `
-                <div class="menu-items-wrapper">
-                    <div class="menu-item">
-                        <span>《眉スタイリング》<br>${eyebrowConfig.planName}<br>部位：${eyebrowConfig.selectedParts.join(', ') || '未選択'}</span>
-                        <button class="remove-button" onclick="resetEyebrowSelection()">✕</button>
-                    </div>
-                </div>
-            `;
-            display.style.display = 'block';
         }
 
         function resetEyebrowSelection() {
-            eyebrowConfig = { limit: 0, selectedParts: [], planName: '' };
+            eyebrowConfig = { limit: 0, selectedParts: [], planName: '', price: 0, time: 0 };
             document.querySelectorAll('#eyebrow .symptoms button').forEach(b => b.classList.remove('active'));
             document.getElementById('eyebrow-parts-area').classList.remove('active');
-            document.getElementById("selected-menus-display").style.display = 'none';
-            selectedMenuTime = 0;
-            menuPrice = 0;
-            checkCalendarVisibility();
-            updateDisplayInfo();
-        }
-
-        // ----------------------------------------------------
-        // 通常メニュー（フェイシャル・ヒト幹細胞・オイル）ロジック
-        // ----------------------------------------------------
-        function selectSymptom(button) {
-            selectedFullDate = '';
-            const treatmentText = document.getElementById('treatment-text');
-            const selectedMenusDisplay = document.getElementById("selected-menus-display");
-
-            // 眉スタイリングの選択をリセット
-            if (eyebrowConfig.planName) resetEyebrowSelection();
-
-            // トグル処理（単一選択にするならここを変更）
-            // ここでは複数選択可能ではなく、カテゴリ内単一選択のような挙動にします
-            const parentSection = button.closest('.symptoms');
-            parentSection.querySelectorAll('button').forEach(b => b.classList.remove('active'));
             
-            button.classList.add('active');
-
-            // 選択情報の取得
-            const name = button.innerText.split('\n')[0];
-            const category = button.getAttribute('data-category');
-            const price = parseInt(button.getAttribute('data-price'));
-            const time = parseInt(button.getAttribute('data-time'));
-
-            // 変数更新
-            selectedSymptom = [{ category: category, name: name }];
-            menuPrice = price;
-            selectedMenuTime = time;
-
-            // 表示更新
-            selectedMenusDisplay.innerHTML = `
-                <div class="menu-items-wrapper">
-                    <div class="menu-item">
-                        <span>《${category}》<br>${name}</span>
-                        <button class="remove-button" onclick="removeSymptomNormal()">✕</button>
-                    </div>
-                </div>
-            `;
-            selectedMenusDisplay.style.display = 'block';
-
-            checkCalendarVisibility();
-            fetchAvailability(currentDate);
-            updateDisplayInfo();
+            recalculateAllSelections();
         }
 
-        function removeSymptomNormal() {
-            selectedSymptom = [];
-            menuPrice = 0;
-            selectedMenuTime = 0;
-            document.querySelectorAll('.symptoms button').forEach(b => b.classList.remove('active'));
-            document.getElementById("selected-menus-display").style.display = 'none';
-            checkCalendarVisibility();
-            updateDisplayInfo();
+        // 通常メニューロジック
+        function selectSymptom(button) {
+            // トグル処理
+            button.classList.toggle('active');
+            recalculateAllSelections();
         }
 
+        function removeSymptomByName(targetName) {
+            // 名前が一致するボタン（眉以外）を探してクリック（トグル解除）
+            const allActiveButtons = document.querySelectorAll('.symptoms button.active');
+            allActiveButtons.forEach(btn => {
+                if (btn.closest('#eyebrow')) return; // 眉は無視
+                const name = btn.innerText.split('\n')[0];
+                if (name === targetName) {
+                    btn.classList.remove('active');
+                }
+            });
+            recalculateAllSelections();
+        }
 
-        // ----------------------------------------------------
-        // 共通・その他ロジック
-        // ----------------------------------------------------
-        
         function selectVisit(element) {
             selectedFullDate = '';
             document.getElementById('firstVisit').classList.remove('active');
@@ -615,11 +588,13 @@
             element.classList.add('active');
             visitCount = element.innerText;
             
-            // 眉スタイリングが表示されている場合、中身を切り替える
             if (selectedMenu === '眉スタイリング') {
                 updateEyebrowVisibility();
-                // 切り替えた際、既存の選択はリセットする（矛盾を防ぐため）
-                resetEyebrowSelection();
+                resetEyebrowSelection(); // 回数が変わったら眉選択はリセット
+            } else if (document.getElementById('eyebrow').classList.contains('active')) {
+                 // タブが眉を開いている状態なら表示更新
+                 updateEyebrowVisibility();
+                 resetEyebrowSelection();
             }
 
             fetchAvailability(currentDate);
@@ -629,49 +604,26 @@
         function updateEyebrowVisibility() {
             const newContainer = document.getElementById('eyebrow-new-container');
             const repeatContainer = document.getElementById('eyebrow-repeat-container');
-            
             newContainer.style.display = 'none';
             repeatContainer.style.display = 'none';
-
-            if (visitCount === '1回目') {
-                newContainer.style.display = 'block';
-            } else if (visitCount === '2回目以降') {
-                repeatContainer.style.display = 'block';
-            } else {
-                // 回数未選択の場合、両方隠すか、あるいはメッセージを出す
-                // 今回は何も表示しない
-            }
+            if (visitCount === '1回目') newContainer.style.display = 'block';
+            else if (visitCount === '2回目以降') repeatContainer.style.display = 'block';
         }
 
         function showMenu(menu) {
             document.getElementById("treatment-text").style.display = "none";
 
-            // メニューボタンのアクティブ化
             let selectedButton = document.querySelector(`.menu-sections button[onclick="showMenu('${menu}')"]`);
-            if (selectedButton) {
-                selectedMenu = selectedButton.innerText;
-            }
+            if (selectedButton) selectedMenu = selectedButton.innerText; // タブ名をセット
 
-            document.querySelectorAll('.menu-sections button').forEach(button => {
-                button.classList.remove('active');
-            });
-            document.querySelectorAll('.menu-section').forEach(section => {
-                section.classList.remove('active');
-            });
+            document.querySelectorAll('.menu-sections button').forEach(button => button.classList.remove('active'));
+            document.querySelectorAll('.menu-section').forEach(section => section.classList.remove('active'));
 
             if (selectedButton) selectedButton.classList.add('active');
             document.getElementById(menu).classList.add('active');
 
-            // 眉スタイリングの場合、来店回数に応じて表示を制御
-            if (menu === 'eyebrow') {
-                updateEyebrowVisibility();
-            }
-
-            // 全リセット
-            resetEyebrowSelection();
-            removeSymptomNormal();
-            
-            updateDisplayInfo();
+            if (menu === 'eyebrow') updateEyebrowVisibility();
+            // ★重要：ここでリセット処理を呼ばないことで、他タブの選択を維持します
         }
 
         function selectDate(cell) {
@@ -688,23 +640,29 @@
         }
 
         function submitForm() {
-            // 眉スタイリングの場合のパーツチェック
-            if (selectedMenu === '眉スタイリング') {
+            if (eyebrowConfig.planName) {
                 if (eyebrowConfig.selectedParts.length !== eyebrowConfig.limit) {
-                    alert(`メニューの部位を${eyebrowConfig.limit}箇所選択してください。`);
+                    alert(`眉スタイリングの部位を${eyebrowConfig.limit}箇所選択してください。`);
                     return;
                 }
             }
+
+            // 最終的なメニューリストを作成
+            let finalSymptoms = [...selectedSymptom];
+            if (eyebrowConfig.planName) {
+                finalSymptoms.unshift({name: `${eyebrowConfig.planName} (部位: ${eyebrowConfig.selectedParts.join('/')})`});
+            }
+
+            const categories = new Set();
+            if(eyebrowConfig.planName) categories.add('眉スタイリング');
+            selectedSymptom.forEach(s => categories.add(s.category));
 
             const formData = {
                 name: document.getElementById('name').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
                 visitCount: visitCount,
-                selectedMenu: selectedMenu,
-                // メニュー内容の統合
-                selectedSymptom: (selectedMenu === '眉スタイリング') 
-                    ? [{name: `${eyebrowConfig.planName} (部位: ${eyebrowConfig.selectedParts.join('/')})`}] 
-                    : selectedSymptom,
+                selectedMenu: Array.from(categories).join('・'), // 複数カテゴリー
+                selectedSymptom: finalSymptoms,
                 irradiationsCount: irradiationsCount,
                 dates: selectedFullDate ? [selectedFullDate] : null,
                 message: document.getElementById('message').value.trim()
@@ -730,7 +688,7 @@
             });
         }
 
-        // --- 以下、既存のカレンダーロジック（そのまま維持） ---
+        // --- 既存のカレンダーロジック ---
         
         async function fetchAvailability(date) {
             const startTime = new Date(date);
