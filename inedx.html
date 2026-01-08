@@ -267,7 +267,7 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             liff.init({
-                liffId: '2005254357-zKma9BZk'
+                liffId: '2008848919-PuJBqw5J'
             }).then(() => {
                 console.log('LIFF初期化成功');
             }).catch((err) => {
@@ -741,7 +741,7 @@
                 updateCalendar(availabilityCache[cacheKey].availability, availabilityCache[cacheKey].businessDays);
                 return;
             }
-            const url = 'https://script.google.com/macros/s/AKfycbwCxnJaxGZ46c3TnnesuZcD_zuxuVoSHoDHo5MxkRzChcK5vZDwBs4HstzkXO-KLyuDYA/exec' +
+            const url = 'https://script.google.com/macros/s/AKfycbwzSir4UHgdijrpxdPTmREFnMxqnqxCXAeUZ6_TgYpA7QZxOpIi_Vlc9tpGAhHf4r3blw/exec' +
                 `?startTime=${startTime.toISOString()}&endTime=${endTime.toISOString()}`;
             try {
                 showLoadingSpinner();
@@ -879,4 +879,5 @@
         function hideLoadingSpinner() { document.getElementById('loadingSpinner').style.display = 'none'; }
     </script>
 </body>
+
 </html>
